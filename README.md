@@ -2,14 +2,22 @@
 
 ## ⚠️ Safari Cookie Limitation
 
-When testing the app on **Safari**, you may face issues with the `refresh_token` cookie not being saved.  
-This happens because Safari blocks **cross-site cookies** by default if the frontend and backend are served from **different domains**.
+When testing the app on Safari, you may notice that the `refresh_token` cookie is not being saved.
+This is **not an issue with the code or the implementation**. Safari blocks cross-site cookies by default when the frontend and backend are hosted on different domains.
 
-- On Chrome/Edge/Firefox → Everything works as expected.
-- On Safari → You need to disable **"Prevent cross-site tracking"** from:  
-  `Safari > Preferences > Privacy > Prevent cross-site tracking`.
+To work around this limitation during testing, I have configured the application to handle it this way.
 
-## Running the Project Locally
+- On Chrome, Edge, or Firefox → Everything works as expected.
+- On Safari → You can temporarily disable cross-site tracking by going to:
+  **Safari > Preferences > Privacy > Prevent cross-site tracking**
+
+**For the best experience and faster performance, I strongly recommend running the project locally.**
+
+Once the frontend and backend are hosted under the same domain, this limitation will no longer occur.
+
+---
+
+## 🚀 Running the Project Locally
 
 ### Backend (NestJS + MongoDB)
 
