@@ -35,6 +35,7 @@ Once the frontend and backend are hosted under the same domain, this limitation 
 3. Start the backend using Docker:
 
    ```bash
+   docker compose build --no-cache
    docker compose up
    ```
 
