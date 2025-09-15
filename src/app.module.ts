@@ -9,7 +9,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
-        (process.env.PROJECT_ROOT ? process.env.PROJECT_ROOT : '') +
+        (process.env.PROJECT_ROOT ? process.env.PROJECT_ROOT : process.cwd()) +
         '/.env' +
         (process.env.NODE_ENV === 'docker' ? '.docker' : ''),
     }),

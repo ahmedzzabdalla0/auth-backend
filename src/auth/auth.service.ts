@@ -1,181 +1,166 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Document, Model } from 'mongoose';
+import { Document, Model, ObjectId } from 'mongoose';
 import { User } from 'schemas/user.schema';
 import { LoginDto, SignupDto } from './dto/auth.dto';
-import * as bcrypt from 'bcrypt';
 import { ValidationException } from 'exceptions/validation.exception';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+
+// Services
+import { PasswordService } from './services/password.service';
+import { TokenService } from './services/token.service';
+import { CookieService } from './services/cookie.service';
+import { UserService } from './services/user.service';
+
+// Types and Constants
+import { AuthResponse, SignupResponse } from './types/auth.types';
+import { AUTH_ERRORS, AUTH_MESSAGES } from './constants/auth.constants';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly passwordService: PasswordService,
+    private readonly tokenService: TokenService,
+    private readonly cookieService: CookieService,
+    private readonly userService: UserService,
   ) {}
 
-  async signup(signupDto: SignupDto, res: Response) {
+  async signup(signupDto: SignupDto, res: Response): Promise<SignupResponse> {
     const { name, email, password } = signupDto;
-    const userExists = await this.userModel.findOne({ email });
-    if (userExists) {
+
+    // Validate password strength
+    const passwordValidation =
+      this.passwordService.validatePasswordStrength(password);
+    if (!passwordValidation.valid) {
       throw new ValidationException(
-        [{ field: 'email', messages: ['User already exists'] }],
-        HttpStatus.CONFLICT,
+        [{ field: 'password', messages: passwordValidation.errors }],
+        HttpStatus.BAD_REQUEST,
       );
     }
-    const passwordHash = await bcrypt.hash(password, 10);
-    const createdUser = new this.userModel({
+
+    // Check if user already exists
+    await this.userService.checkUserExists(email);
+
+    // Hash password and generate refresh token reference
+    const passwordHash = await this.passwordService.hashPassword(password);
+    const refreshTokenRef = this.tokenService.generateRefreshTokenRef();
+
+    // Create user
+    const createdUser = await this.userService.createUser({
       name,
       email,
       passwordHash,
+      refreshTokenRef,
     });
-    await createdUser.save();
-    res.cookie('refresh_token', this.createRefreshToken(createdUser), {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: 'none',
-      secure: true,
-    });
+
+    // Generate tokens
+    const accessToken = this.tokenService.createAccessToken(createdUser);
+    const refreshToken = this.tokenService.createRefreshToken(createdUser);
+
+    // Set refresh token cookie
+    this.cookieService.setRefreshTokenCookie(res, refreshToken, true);
 
     return {
       createdUser,
-      accessToken: this.createAccessToken(createdUser),
+      accessToken,
     };
   }
 
-  async login({ email, password, rememberMe }: LoginDto, res: Response) {
-    const user = await this.userModel.findOne({ email });
-    if (!user) {
-      throw new ValidationException(
-        [{ field: 'email', messages: ['User not found'] }],
-        HttpStatus.NOT_FOUND,
-      );
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  async login(
+    { email, password, rememberMe }: LoginDto,
+    res: Response,
+  ): Promise<AuthResponse> {
+    // Validate user exists
+    const user = await this.userService.validateUserExists(email);
+
+    // Validate password
+    const isPasswordValid = await this.passwordService.comparePassword(
+      password,
+      user.passwordHash,
+    );
+
     if (!isPasswordValid) {
       throw new ValidationException(
-        [{ field: 'password', messages: ['Invalid password'] }],
+        [{ field: 'password', messages: [AUTH_ERRORS.INVALID_PASSWORD] }],
         HttpStatus.UNAUTHORIZED,
       );
     }
-    res.cookie('refresh_token', this.createRefreshToken(user), {
-      httpOnly: true,
-      sameSite: 'none',
-      secure: true,
-      ...(rememberMe ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}),
-    });
+
+    // Generate tokens
+    const accessToken = this.tokenService.createAccessToken(user);
+    const refreshToken = this.tokenService.createRefreshToken(user);
+
+    // Set refresh token cookie
+    this.cookieService.setRefreshTokenCookie(res, refreshToken, rememberMe);
+
     return {
-      ...user.toObject(),
-      accessToken: this.createAccessToken(user),
+      user: this.userService.sanitizeUserResponse(user),
+      accessToken,
     };
   }
 
-  async refresh(req: Request) {
-    const refreshToken = req?.cookies?.refresh_token as string | undefined;
-    if (!refreshToken) {
-      throw new ValidationException(
-        [{ field: 'refreshToken', messages: ['Refresh token not found'] }],
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    const { userId, rtRef } = this.jwtService.verify<{
-      userId: string;
-      rtRef: string;
-    }>(refreshToken, {
-      secret: this.configService.get<string>('RT_SECRET')!,
-    });
-    const user = await this.userModel.findOne({
-      _id: userId,
-      refreshTokenRef: rtRef,
-    });
-    if (!user) {
-      throw new ValidationException(
-        [{ field: 'refreshToken', messages: ['Invalid refresh token'] }],
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    const newAccessToken = this.createAccessToken(user);
+  async refresh(req: Request): Promise<{ accessToken: string }> {
+    const refreshToken = this.cookieService.getRefreshTokenFromCookies(
+      req.cookies,
+    );
+
+    // Validate refresh token and get user
+    const { user } = await this.tokenService.validateRefreshToken(
+      refreshToken!,
+      this.userModel,
+    );
+
+    // Generate new access token
+    const newAccessToken = this.tokenService.createAccessToken(user);
+
     return { accessToken: newAccessToken };
   }
 
-  async getUser(req: Request) {
-    const user = await this.userModel.findById(
-      (req.user as User & Document)._id,
+  async getUser(req: Request): Promise<{ user: Partial<User> }> {
+    const userId = (req.user as User & Document)._id as ObjectId;
+    const user = await this.userService.validateUserExistsById(userId);
+
+    return {
+      user: this.userService.sanitizeUserResponse(user),
+    };
+  }
+
+  logout(res: Response): { message: string } {
+    this.cookieService.clearRefreshTokenCookie(res);
+    return { message: AUTH_MESSAGES.LOGOUT_SUCCESS };
+  }
+
+  async resetRefresh(
+    req: Request,
+    res: Response,
+  ): Promise<{ message: string }> {
+    const refreshToken = this.cookieService.getRefreshTokenFromCookies(
+      req.cookies,
     );
-    if (!user) {
-      throw new ValidationException(
-        [{ field: 'user', messages: ['User not found'] }],
-        HttpStatus.NOT_FOUND,
-      );
-    }
-    return { user };
+
+    // Validate refresh token and get user
+    const { user } = await this.tokenService.validateRefreshToken(
+      refreshToken!,
+      this.userService.userModel,
+    );
+
+    // Generate new refresh token reference and token
+    await this.tokenService.revokeRefreshToken(user);
+    const newRefreshToken = this.tokenService.createRefreshToken(user);
+
+    // Set new refresh token cookie
+    this.cookieService.setRefreshTokenCookie(res, newRefreshToken, true);
+
+    return { message: AUTH_MESSAGES.REFRESH_TOKEN_RESET_SUCCESS };
   }
 
-  logout(res: Response) {
-    res.clearCookie('refresh_token');
-    return { message: 'Successfully logged out' };
-  }
-
-  async resetRefresh(req: Request, res: Response) {
-    const refreshToken = req?.cookies?.refresh_token as string | undefined;
-    if (!refreshToken) {
-      throw new ValidationException(
-        [{ field: 'refreshToken', messages: ['Refresh token not found'] }],
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    const { userId, rtRef } = this.jwtService.verify<{
-      userId: string;
-      rtRef: string;
-    }>(refreshToken, {
-      secret: this.configService.get<string>('RT_SECRET')!,
-    });
-    const user = await this.userModel.findOne({
-      _id: userId,
-      refreshTokenRef: rtRef,
-    });
-    if (!user) {
-      throw new ValidationException(
-        [{ field: 'refreshToken', messages: ['Invalid refresh token'] }],
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-    const newRefreshTokenRef = uuidv4();
-    user.refreshTokenRef = newRefreshTokenRef;
-    const newRefreshToken = this.createRefreshToken(user);
-    await user.save();
-    res.cookie('refresh_token', newRefreshToken, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: 'none',
-      secure: true,
-    });
-    return { message: 'Successfully reset the refresh token.' };
-  }
-
+  // Legacy methods for backward compatibility
   createRefreshToken(user: User & Document): string {
-    const refreshToken = this.jwtService.sign(
-      { userId: user._id as string, rtRef: user.refreshTokenRef },
-      {
-        expiresIn: '7d',
-        secret: this.configService.get<string>('RT_SECRET')!,
-      },
-    );
-    return refreshToken;
+    return this.tokenService.createRefreshToken(user);
   }
 
   createAccessToken(user: User & Document): string {
-    const accessToken = this.jwtService.sign(
-      { userId: user._id as string },
-      {
-        expiresIn: '15m',
-        secret: this.configService.get<string>('AT_SECRET')!,
-      },
-    );
-    return accessToken;
+    return this.tokenService.createAccessToken(user);
   }
 }

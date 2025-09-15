@@ -1,44 +1,42 @@
-import { IsBoolean, IsEmail, IsString, Matches } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 import { Match } from 'decorators/match.decorator';
 
-export class SignupDto {
-  @IsEmail()
-  email: string;
+// Regex for password validation - at least 8 chars with letter, number, and special char
+const PASSWORD_REGEX =
+  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/;
 
-  @IsString()
-  @Matches(
-    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/,
-    {
-      message:
-        'Password must be at least 8 characters, include a letter, number, and special character',
-    },
-  )
-  password: string;
+export class SignupDto {
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  readonly email: string;
+
+  @IsString({ message: 'Password must be a string' })
+  @Matches(PASSWORD_REGEX, {
+    message:
+      'Password must be at least 8 characters, include a letter, number, and special character',
+  })
+  readonly password: string;
 
   @Match('password', { message: 'Passwords do not match' })
-  repassword: string;
+  readonly repassword: string;
 
-  @IsString()
-  name: string;
+  @IsString({ message: 'Name must be a string' })
+  readonly name: string;
 }
 
 export class LoginDto {
-  @IsEmail()
-  email: string;
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  readonly email: string;
 
-  @Matches(
-    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/,
-    {
-      message: 'Invalid password',
-    },
-  )
-  password: string;
+  @IsString({ message: 'Password is required' })
+  readonly password: string;
 
-  @IsBoolean()
-  rememberMe: boolean;
-}
-
-export class logoutDto {
-  @IsString()
-  userId: string;
+  @IsOptional()
+  @IsBoolean({ message: 'Remember me must be a boolean value' })
+  readonly rememberMe?: boolean = false;
 }

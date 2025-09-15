@@ -9,7 +9,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('/content')
-  content(@Req() req: Request & { user: User }) {
-    return this.dashboardService.content(req.user);
+  getContent(@Req() req: Request & { user: User }) {
+    return this.dashboardService.getContent(req.user);
   }
 }

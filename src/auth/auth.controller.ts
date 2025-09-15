@@ -12,7 +12,7 @@ import { AuthService } from './auth.service';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
-import { MinGuard } from './min.guard';
+import { MinGuard } from './guards/min.guard';
 
 @Controller('auth')
 export class AuthController {
