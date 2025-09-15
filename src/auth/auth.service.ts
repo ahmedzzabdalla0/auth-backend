@@ -35,7 +35,7 @@ export class AuthService {
     });
     await createdUser.save();
     res.cookie('refresh_token', this.createRefreshToken(createdUser), {
-      domain: process.env.FRONTEND_BASE_URL,
+      domain: process.env.FRONTEND_BASE_URL?.replace(/^https?:\/\//, ''),
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: 'strict',
@@ -64,7 +64,7 @@ export class AuthService {
       );
     }
     res.cookie('refresh_token', this.createRefreshToken(user), {
-      domain: process.env.FRONTEND_BASE_URL,
+      domain: process.env.FRONTEND_BASE_URL?.replace(/^https?:\/\//, ''),
       httpOnly: true,
       sameSite: 'strict',
       secure: this.configService.get<string>('NODE_ENV') === 'production',
@@ -151,7 +151,7 @@ export class AuthService {
     const newRefreshToken = this.createRefreshToken(user);
     await user.save();
     res.cookie('refresh_token', newRefreshToken, {
-      domain: process.env.FRONTEND_BASE_URL,
+      domain: process.env.FRONTEND_BASE_URL?.replace(/^https?:\/\//, ''),
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: 'strict',
