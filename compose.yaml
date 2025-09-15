@@ -1,0 +1,26 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=docker
+    env_file:
+      - .env.docker
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ahmed
+      MONGO_INITDB_ROOT_PASSWORD: 65489Ad5643
+      MONGO_INITDB_DATABASE: nestjs
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+volumes:
+  mongo_data:
