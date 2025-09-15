@@ -1,5 +1,18 @@
 # Authentication Task – Full Task Documentation
 
+## ⚠️ Safari Cookie Limitation
+
+When testing the app on **Safari**, you may face issues with the `refresh_token` cookie not being saved.  
+This happens because Safari blocks **cross-site cookies** by default if the frontend and backend are served from **different domains**.
+
+- On Chrome/Edge/Firefox → Everything works as expected.
+- On Safari → You need to disable **"Prevent cross-site tracking"** from:  
+  `Safari > Preferences > Privacy > Prevent cross-site tracking`.
+
+### How to Fix in Production
+
+This is not an implementation issue. The problem will be solved automatically once both the **frontend** and **backend** are hosted under the same domain (e.g., `api.example.com` and `app.example.com`).
+
 ## Overview
 
 This project implements a complete **Authentication System** with both **Backend** and **Frontend** integration.  
