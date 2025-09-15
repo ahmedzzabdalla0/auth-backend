@@ -71,10 +71,8 @@ export class AuthService {
     { email, password, rememberMe }: LoginDto,
     res: Response,
   ): Promise<AuthResponse> {
-    // Validate user exists
     const user = await this.userService.validateUserExists(email);
 
-    // Validate password
     const isPasswordValid = await this.passwordService.comparePassword(
       password,
       user.passwordHash,
@@ -87,11 +85,9 @@ export class AuthService {
       );
     }
 
-    // Generate tokens
     const accessToken = this.tokenService.createAccessToken(user);
     const refreshToken = this.tokenService.createRefreshToken(user);
 
-    // Set refresh token cookie
     this.cookieService.setRefreshTokenCookie(res, refreshToken, rememberMe);
 
     return {
@@ -105,13 +101,11 @@ export class AuthService {
       req.cookies,
     );
 
-    // Validate refresh token and get user
     const { user } = await this.tokenService.validateRefreshToken(
       refreshToken!,
       this.userModel,
     );
 
-    // Generate new access token
     const newAccessToken = this.tokenService.createAccessToken(user);
 
     return { accessToken: newAccessToken };
@@ -139,23 +133,19 @@ export class AuthService {
       req.cookies,
     );
 
-    // Validate refresh token and get user
     const { user } = await this.tokenService.validateRefreshToken(
       refreshToken!,
       this.userService.userModel,
     );
 
-    // Generate new refresh token reference and token
     await this.tokenService.revokeRefreshToken(user);
     const newRefreshToken = this.tokenService.createRefreshToken(user);
 
-    // Set new refresh token cookie
     this.cookieService.setRefreshTokenCookie(res, newRefreshToken, true);
 
     return { message: AUTH_MESSAGES.REFRESH_TOKEN_RESET_SUCCESS };
   }
 
-  // Legacy methods for backward compatibility
   createRefreshToken(user: User & Document): string {
     return this.tokenService.createRefreshToken(user);
   }

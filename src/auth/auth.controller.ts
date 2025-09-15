@@ -13,6 +13,7 @@ import { LoginDto, SignupDto } from './dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
 import { MinGuard } from './guards/min.guard';
+import { ApiBearerAuth, ApiCookieAuth, ApiResponse } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -37,18 +38,26 @@ export class AuthController {
 
   @Post('refresh')
   @UseGuards(AuthGuard('jwt-refresh'))
+  @ApiCookieAuth('refreshToken')
   async refresh(@Req() req: Request) {
     return this.authService.refresh(req);
   }
 
   @Get('get_user')
   @UseGuards(AuthGuard('jwt-access'))
+  @ApiBearerAuth()
   getUser(@Req() req: Request) {
     return this.authService.getUser(req);
   }
 
+  @ApiResponse({
+    status: 201,
+    description:
+      'Invalidate stolen refresh token and keep the current session active. All other sessions will be logged out once their access token expires, the page is refreshed, or an authenticated action is attempted.',
+  })
   @Post('report_refresh_stolen')
   @UseGuards(AuthGuard('jwt-refresh'))
+  @ApiCookieAuth('refreshToken')
   async resetRefresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
