@@ -8,8 +8,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath:
-        '.env' + (process.env.NODE_ENV === 'docker' ? '.docker' : ''),
+      envFilePath: process.env.PROJECT_ROOT
+        ? process.env.PROJECT_ROOT
+        : '' + '/.env' + (process.env.NODE_ENV === 'docker' ? '.docker' : ''),
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
