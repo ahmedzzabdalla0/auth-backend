@@ -9,6 +9,55 @@ This happens because Safari blocks **cross-site cookies** by default if the fron
 - On Safari → You need to disable **"Prevent cross-site tracking"** from:  
   `Safari > Preferences > Privacy > Prevent cross-site tracking`.
 
+## Running the Project Locally
+
+### Backend (NestJS + MongoDB)
+
+1. Clone the repository and navigate to the backend folder.
+2. Create a `.env.docker` file in the root of the backend project with the following content:
+
+   ```env
+   MONGO_URI=mongodb://ahmed:65489Ad5643@mongo:27017/nestjs?authSource=admin
+   RT_SECRET=4746dcf0a14269ce6ef737a330fbda3b
+   AT_SECRET=718293a4b5c6d7e8f9fa0b1c2d3e4f50
+   CSRF_SECRET=8f9e7d6c5b4a39281716151413121110
+   FRONTEND_BASE_URL=http://localhost:5173
+   ```
+
+3. Start the backend using Docker:
+
+   ```bash
+   docker compose up
+   ```
+
+> This will spin up MongoDB and the NestJS backend.
+
+---
+
+### Frontend (React + Vite)
+
+1. Clone the repository and navigate to the frontend folder.
+
+2. Create a `.env` file in the root of the frontend project with the following content:
+
+```env
+VITE_BACKEND_API_URL=http://localhost:3000
+```
+
+3. Install dependencies and start the development server:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+---
+
+Now the application should be accessible at:
+
+- **Frontend:** [http://localhost:5173](http://localhost:5173)
+- **Backend:** [http://localhost:3000](http://localhost:3000)
+
 ### How to Fix in Production
 
 This is not an implementation issue. The problem will be solved automatically once both the **frontend** and **backend** are hosted under the same domain (e.g., `api.example.com` and `app.example.com`).
