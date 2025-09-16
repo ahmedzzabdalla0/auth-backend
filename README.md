@@ -17,7 +17,15 @@ This is **not caused by the code or implementation** but by Safari’s default b
 
 ### Backend (NestJS + MongoDB)
 
-1. Clone the repository and navigate to the backend folder.
+1. Clone the backend repository and navigate to the backend folder:
+
+   [Backend Repository](https://github.com/ahmedzzabdalla0/auth-backend.git)
+
+   ```bash
+   git clone https://github.com/ahmedzzabdalla0/auth-backend.git
+   cd auth-backend
+   ```
+
 2. Create a `.env.docker` file in the root of the backend project with the following content:
 
    ```env
@@ -41,13 +49,20 @@ This is **not caused by the code or implementation** but by Safari’s default b
 
 ### Frontend (React + Vite)
 
-1. Clone the repository and navigate to the frontend folder.
+1. Clone the frontend repository and navigate to the frontend folder:
+
+   [Frontend Repository](https://github.com/ahmedzzabdalla0/auth-frontend.git)
+
+   ```bash
+   git clone https://github.com/ahmedzzabdalla0/auth-frontend.git
+   cd auth-frontend
+   ```
 
 2. Create a `.env` file in the root of the frontend project with the following content:
 
-```env
-VITE_BACKEND_API_URL=http://localhost:3000
-```
+   ```env
+   VITE_BACKEND_API_URL=http://localhost:3000
+   ```
 
 3. Install dependencies and start the development server:
 
@@ -58,10 +73,11 @@ VITE_BACKEND_API_URL=http://localhost:3000
 
 ---
 
-Now the application should be accessible at:
+### Access the Application
 
 - **Frontend:** [http://localhost:5173](http://localhost:5173)
 - **Backend:** [http://localhost:3000](http://localhost:3000)
+- **Swagger API Docs:** [http://localhost:3000/api](http://localhost:3000/api)
 
 ### How to Fix in Production
 
@@ -177,7 +193,6 @@ All other sessions will be logged out once their access token expires, the page 
 ### Features
 
 - **Route Protection**
-
   - If a user tries to access any route, authentication and authorization are verified.
   - If logged in and navigates to `login`/`signup`, they are redirected to the dashboard.
   - If not authenticated, accessing protected routes redirects them back to `login`.
