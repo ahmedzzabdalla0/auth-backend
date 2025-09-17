@@ -11,9 +11,19 @@ This is **not caused by the code or implementation** but by Safari’s default b
 
 🟥 **Recommendation:** For the best experience and faster performance, I strongly suggest running the project locally. Once frontend and backend are hosted under the same domain, this limitation will no longer occur.
 
----
+### How to Fix in Production
+
+This is not an implementation issue. The problem will be solved automatically once both the **frontend** and **backend** are hosted under the same domain (e.g., `api.example.com` and `app.example.com`).
 
 ## 🚀 Running the Project Locally
+
+### Ports Requirement
+
+Before running the project, make sure the following ports are free:
+
+- **5173** → React (Vite)
+- **27017** → MongoDB
+- **3000** → NestJS
 
 ### Backend (NestJS + MongoDB)
 
@@ -79,10 +89,6 @@ This is **not caused by the code or implementation** but by Safari’s default b
 - **Backend:** [http://localhost:3000](http://localhost:3000)
 - **Swagger API Docs:** [http://localhost:3000/api](http://localhost:3000/api)
 
-### How to Fix in Production
-
-This is not an implementation issue. The problem will be solved automatically once both the **frontend** and **backend** are hosted under the same domain (e.g., `api.example.com` and `app.example.com`).
-
 ## Overview
 
 This project implements a complete **Authentication System** with both **Backend** and **Frontend** integration.  
@@ -90,7 +96,14 @@ It includes features such as signup, login, token refresh, session management, a
 The backend is powered by **NestJS, TypeScript, MongoDB (local via Docker)**, and the frontend is built with a **React-based atomic structure**.  
 The project also provides a **Swagger API documentation** and is deployed for live testing.
 
----
+## 🔐 Token Storage Strategy
+
+For security and best practices:
+
+- The **refresh token** is stored in a secure, HttpOnly cookie so it cannot be accessed by client-side JavaScript.
+- The **access token** is obtained on login/refresh and kept only in memory during the application’s runtime. In the frontend, it is managed through a **React Context Provider**, which makes it available to the application without persisting it in localStorage or sessionStorage.
+
+This approach minimizes the risk of token theft through XSS while still allowing smooth authentication flows.
 
 ## Backend
 
@@ -199,6 +212,7 @@ All other sessions will be logged out once their access token expires, the page 
 
 - **Atomic Design Structure**
   - Organized and scalable folder structure for components.
+  - App Router Structure with layouts and nested routes.
 
 ---
 
